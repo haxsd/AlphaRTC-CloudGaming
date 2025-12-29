@@ -255,21 +255,27 @@ bool IsCodecBlacklistedForSimulcast(const std::string& codec_name) {
 
 // The selected thresholds for QVGA and VGA corresponded to a QP around 10.
 // The change in QP declined above the selected bitrates.
+// MODIFIED for cloud gaming: increased max bitrates to match real cloud gaming
+// services (GeForce NOW: 15-25 Mbps for 720p/1080p, ref: NVIDIA official docs)
 static int GetMaxDefaultVideoBitrateKbps(int width,
                                          int height,
                                          bool is_screenshare) {
   int max_bitrate;
   if (width * height <= 320 * 240) {
-    max_bitrate = 600;
+    max_bitrate = 2000;       // Was 600, now 2 Mbps
   } else if (width * height <= 640 * 480) {
-    max_bitrate = 1700;
+    max_bitrate = 8000;       // Was 1700, now 8 Mbps
   } else if (width * height <= 960 * 540) {
-    max_bitrate = 2000;
+    max_bitrate = 15000;      // Was 2000, now 15 Mbps
+  } else if (width * height <= 1280 * 720) {
+    max_bitrate = 25000;      // NEW: 720p gets 25 Mbps (GeForce NOW spec)
+  } else if (width * height <= 1920 * 1080) {
+    max_bitrate = 35000;      // NEW: 1080p gets 35 Mbps
   } else {
-    max_bitrate = 2500;
+    max_bitrate = 50000;      // NEW: 4K gets 50 Mbps
   }
   if (is_screenshare)
-    max_bitrate = std::max(max_bitrate, 1200);
+    max_bitrate = std::max(max_bitrate, 5000);  // Was 1200, now 5 Mbps
   return max_bitrate;
 }
 

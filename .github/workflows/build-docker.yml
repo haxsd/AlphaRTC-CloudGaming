@@ -1,0 +1,70 @@
+# GitHub Actions workflow to build AlphaRTC Docker image
+# This workflow builds the modified AlphaRTC with increased video bitrate limits
+# for cloud gaming scenarios (720p: 25Mbps, 1080p: 35Mbps)
+
+name: Build AlphaRTC Docker
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build compile image
+      run: |
+        docker build dockers \
+          --build-arg UID=$(id -u) \
+          --build-arg GUID=$(id -g) \
+          -f dockers/Dockerfile.compile \
+          -t alphartc-compile
+          
+    - name: Sync dependencies and compile
+      run: |
+        # Create container and run compilation
+        docker run --rm \
+          -v ${{ github.workspace }}:/app/AlphaRTC \
+          -w /app/AlphaRTC \
+          alphartc-compile \
+          bash -c "
+            gclient sync && \
+            mv -fvn src/* . 2>/dev/null || true && \
+            rm -rf src && \
+            gn gen out/Default --args='is_debug=false' && \
+            ninja -C out/Default peerconnection_serverless
+          "
+          
+    - name: Prepare release files
+      run: |
+        mkdir -p target/lib target/bin target/pylib
+        cp modules/third_party/onnxinfer/lib/*.so target/lib/ 2>/dev/null || true
+        cp modules/third_party/onnxinfer/lib/*.so.* target/lib/ 2>/dev/null || true
+        cp out/Default/peerconnection_serverless target/bin/peerconnection_serverless.origin
+        cp examples/peerconnection/serverless/peerconnection_serverless target/bin/
+        cp modules/third_party/cmdinfer/*.py target/pylib/
+        
+    - name: Build release image
+      run: |
+        docker build target -f dockers/Dockerfile.release -t alphartc
+        
+    - name: Save Docker image
+      run: |
+        docker save alphartc | gzip > alphartc-cloud-gaming.tar.gz
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: alphartc-cloud-gaming-docker
+        path: alphartc-cloud-gaming.tar.gz
+        retention-days: 30
