@@ -1,7 +1,9 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
+
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-    git curl wget python libglib2.0-dev clang ninja-build
+    git curl wget python3 python-is-python3 libglib2.0-dev clang ninja-build
 
 # Add ONL user
 ARG USER=onl
