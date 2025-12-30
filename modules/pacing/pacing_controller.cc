@@ -28,7 +28,9 @@
 namespace webrtc {
 namespace {
 // Time limit in milliseconds between packet bursts.
-constexpr TimeDelta kDefaultMinPacketLimit = TimeDelta::Millis(5);
+// Modified for cloud gaming: real cloud gaming platforms use ~0.3-0.5ms intervals
+// Default WebRTC uses 5ms which is too conservative for high-bitrate streaming
+constexpr TimeDelta kDefaultMinPacketLimit = TimeDelta::Micros(500);  // 0.5ms
 constexpr TimeDelta kCongestedPacketInterval = TimeDelta::Millis(500);
 // TODO(sprang): Consider dropping this limit.
 // The maximum debt level, in terms of time, capped when sending packets.
